@@ -1,0 +1,118 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bsdesolve"
+version = "0.1.0"
+description = "A Python library for solving Backward Stochastic Differential Equations (BSDEs), Forward-Backward SDEs (FBSDEs), and related problems using classical and deep learning methods."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Maxim Danilov", email = "danilov.ma@phystech.edu"},
+]
+keywords = [
+    "bsde",
+    "fbsde",
+    "stochastic-differential-equations",
+    "deep-learning",
+    "numerical-methods",
+    "finance",
+    "pde",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "torch>=2.0",
+    "numpy>=1.24",
+]
+
+# PEP 735 dependency groups (uv-native). `uv sync` installs the `dev` group
+# by default, so the venv is fully self-contained (tests/lint/type-check run
+# from the venv, not from a global environment).
+[dependency-groups]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.4",
+    "mypy>=1.8",
+]
+
+# Optional extras (for `pip install -e .[dev]` users who don't use uv).
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.4",
+    "mypy>=1.8",
+]
+docs = [
+    "sphinx>=7.0",
+    "sphinx-rtd-theme>=2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourname/bsdesolve"
+Documentation = "https://bsdesolve.readthedocs.io"
+Repository = "https://github.com/yourname/bsdesolve"
+Changelog = "https://github.com/yourname/bsdesolve/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["bsdesolve"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "bsdesolve/",
+    "tests/",
+    "examples/",
+    "README.md",
+    "LICENSE",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "A",   # flake8-builtins
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "N803",   # function argument names: math notation (S0, K, T, xi, ...)
+    "N806",   # variable names: math notation (dW, X, Y, Z, N, ...)
+    "N802",   # function names: allow math-style (e.g. blackscholes is fine, but keep flexible)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["bsdesolve"]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
