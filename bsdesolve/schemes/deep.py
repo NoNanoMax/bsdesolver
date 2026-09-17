@@ -31,7 +31,7 @@ import time as _time
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa: N812  # canonical PyTorch alias
 
 from bsdesolve.core.problem import BSDEProblem
 from bsdesolve.diagnostics.convergence import ConvergenceReport
@@ -62,15 +62,14 @@ class ZNetwork(nn.Module):
         super().__init__()
         input_dim = dim_x + 1  # (t, x_1, ..., x_dim)
 
-        # Build the network
+        # Build the network (no BatchNorm — problematic for BSDE where
+        # inputs are nearly constant at early time steps)
         layers: list[nn.Module] = []
         layers.append(nn.Linear(input_dim, hidden_dim))
-        layers.append(nn.BatchNorm1d(hidden_dim))
         layers.append(nn.ReLU())
         for _ in range(n_layers - 1):
             layers.extend([
                 nn.Linear(hidden_dim, hidden_dim),
-                nn.BatchNorm1d(hidden_dim),
                 nn.ReLU(),
             ])
         layers.append(nn.Linear(hidden_dim, dim_w))
@@ -92,10 +91,13 @@ class ZNetwork(nn.Module):
         else:
             t_expanded = t.reshape(M, 1)
         inp = torch.cat([t_expanded, x], dim=1)  # (M, dim_x + 1)
-        return self.net(inp)  # (M, dim_w)
+        result: torch.Tensor = self.net(inp)  # (M, dim_w)
+        return result
 
     def extra_repr(self) -> str:
-        return f"dim_x={self.net[0].in_features - 1}, hidden={self.net[0].out_features}"
+        first = self.net[0]
+        assert isinstance(first, nn.Linear)
+        return f"dim_x={first.in_features - 1}, hidden={first.out_features}"
 
 
 class DeepScheme(Scheme):
@@ -105,7 +107,7 @@ class DeepScheme(Scheme):
     Suitable for high-dimensional problems (10D, 100D, ...).
     """
 
-    def solve(
+    def solve(  # type: ignore[override]
         self,
         problem: BSDEProblem,
         num_paths: int = 10_000,
@@ -243,10 +245,7 @@ class DeepScheme(Scheme):
             if loss_val < best_loss:
                 best_loss = loss_val
                 best_iter = it
-                if early_stop_patience is not None:
-                    patience_counter = 0
-                else:
-                    patience_counter = None
+                patience_counter = 0
             else:
                 if early_stop_patience is not None:
                     patience_counter += 1
@@ -279,10 +278,10 @@ class DeepScheme(Scheme):
             else:
                 x = x.to(device).reshape(1, dim).expand(num_paths, dim).clone()
 
-            y_val = y0.item()  # scalar
+            y = torch.full((num_paths,), y0.item(), device=device)
             Y = torch.zeros(num_paths, N + 1, device=device)
             Z = torch.zeros(num_paths, N, dim_w, device=device)
-            Y[:, 0] = y_val
+            Y[:, 0] = y
 
             for k in range(N):
                 t_k = t_grid[k]
@@ -292,10 +291,10 @@ class DeepScheme(Scheme):
                 sigma = sde.diffusion(t_k, x)
                 dx = mu * dt + torch.einsum("nab,nb->na", sigma, dW_test[:, k])
                 x = x + dx
-                f_val = problem.generator(t_k, y_val * torch.ones(num_paths, device=device), z_k)
+                f_val = problem.generator(t_k, y, z_k)
                 dy = -f_val * dt + (z_k * dW_test[:, k]).sum(dim=-1)
-                y_val_tensor = y_val + dy  # (num_paths,)
-                Y[:, k + 1] = y_val_tensor
+                y = y + dy
+                Y[:, k + 1] = y
 
         z_net.train()  # reset to training mode
 

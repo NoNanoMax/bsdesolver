@@ -128,6 +128,36 @@ class GBM(ForwardSDE):
         return f"GBM(μ={self.mu}, σ={self.sigma}, S₀={self.x0})"
 
 
+class BrownianMotion(ForwardSDE):
+    """Standard Brownian Motion: dX_t = dW_t.
+
+    The simplest possible SDE. Useful as a test case for BSDEs
+    with known exact solutions.
+
+    Args:
+        dim: Dimension of the Brownian motion.
+        x0: Initial value (scalar or tensor).
+    """
+
+    def __init__(self, dim: int = 1, x0: float | torch.Tensor = 0.0):
+        super().__init__(dim=dim, x0=x0)
+
+    def drift(self, t: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+        N = x.shape[0]
+        return torch.zeros(N, self.dim, dtype=x.dtype, device=x.device)
+
+    def diffusion(self, t: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+        N = x.shape[0]
+        return (
+            torch.eye(self.dim, dtype=x.dtype, device=x.device)
+            .unsqueeze(0)
+            .expand(N, -1, -1)
+        )
+
+    def __repr__(self) -> str:
+        return f"BrownianMotion(dim={self.dim}, x0={self.x0})"
+
+
 class OU(ForwardSDE):
     """Ornstein-Uhlenbeck: dX_t = θ(μ - X_t) dt + σ dW_t.
 

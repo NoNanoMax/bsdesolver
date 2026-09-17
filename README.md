@@ -2,17 +2,17 @@
 
 A Python library for solving **Backward Stochastic Differential Equations (BSDEs)**, **Forward-Backward SDEs (FBSDEs)**, and related problems.
 
-> ⚠️ **Alpha** — v0.1.0. Core BSDE solver (Euler-Maruyama) is functional. Deep BSDE, FBSDE, jumps, and G-BSDE are planned.
+> ⚠️ **Alpha** — v0.1.0. Core BSDE solver (Euler-Maruyama) and Deep BSDE (Han-Jentzen-E) are functional. FBSDE-strong, jumps, and G-BSDE are planned.
 
-## Features (planned)
+## Features
 
 - ✅ **BSDE solver** (Euler-Maruyama + OLS regression)
-- ⬜ **Deep BSDE** (neural network approximation of Z)
-- ⬜ **FBSDE** (weakly and strongly coupled)
+- ✅ **Deep BSDE** (neural network approximation of Z, Han-Jentzen-E 2018)
+- ⬜ **FBSDE** (weakly coupled works; strongly coupled planned)
 - ⬜ **Jumps / Lévy-driven BSDE**
 - ⬜ **Vector BSDE** (systems)
 - ⬜ **G-BSDE / Nonlinear Expectation**
-- ⬜ **Built-in convergence diagnostics**
+- ✅ **Built-in convergence diagnostics**
 - ⬜ **Benchmark suite** (15+ problems with exact solutions)
 
 ## Installation
@@ -108,7 +108,7 @@ result = solve(
     terminal_condition,   # TerminalCondition: ξ
     sde=None,             # Optional forward SDE
     t_span=(0.0, 1.0),
-    method="euler",       # "euler" | "deep" (planned)
+    method="euler",       # "euler" | "deep"
     num_paths=10_000,
     num_time_steps=100,
     device="cpu",
