@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any
 
 import torch
 
@@ -61,6 +62,7 @@ class Scheme(ABC):
         device: str = "cpu",
         seed: int | None = None,
         return_diagnostics: bool = False,
+        **scheme_kwargs: Any,
     ) -> BSDEResult:
         """Solve the BSDE.
 
@@ -71,6 +73,8 @@ class Scheme(ABC):
             device: "cpu" or "cuda".
             seed: Random seed.
             return_diagnostics: Whether to compute convergence diagnostics.
+            **scheme_kwargs: Scheme-specific parameters (e.g. for "deep":
+                hidden_dim, n_layers, learning_rate, max_iterations, ...).
 
         Returns:
             BSDEResult with Y, Z, and optional diagnostics.

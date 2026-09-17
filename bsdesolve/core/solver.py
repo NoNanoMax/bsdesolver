@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from bsdesolve.core.generator import Generator
 from bsdesolve.core.problem import BSDEProblem
 from bsdesolve.core.sde import ForwardSDE
 from bsdesolve.core.terminal import TerminalCondition
+from bsdesolve.schemes.deep import DeepScheme
 from bsdesolve.schemes.euler import EulerScheme
 from bsdesolve.schemes.scheme import BSDEResult, Scheme
 
@@ -22,6 +25,7 @@ def solve(
     device: str = "cpu",
     seed: int | None = None,
     return_diagnostics: bool = False,
+    **scheme_kwargs: Any,
 ) -> BSDEResult:
     """Solve a BSDE.
 
@@ -29,34 +33,40 @@ def solve(
         generator: The BSDE generator f(t, y, z).
         terminal_condition: The terminal condition ξ.
         sde: Optional forward SDE driving the filtration. If None, uses
-            standard Brownian motion.
+            standard Brownian motion. (Required for method="deep".)
         t_span: Time interval (t0, T).
         dim: State dimension (only used if sde is None).
-        method: Numerical scheme: "euler" (Monte Carlo + OLS).
-            More methods (e.g. "deep") will be added.
-        num_paths: Number of Monte Carlo paths.
+        method: Numerical scheme: "euler" (Monte Carlo + OLS), "deep"
+            (Deep BSDE, Han-Jentzen-E 2018).
+        num_paths: Number of Monte Carlo paths (training batch for "deep").
         num_time_steps: Number of time steps.
         device: "cpu" or "cuda".
         seed: Random seed for reproducibility.
         return_diagnostics: Whether to compute convergence diagnostics.
+        **scheme_kwargs: Extra parameters forwarded to the scheme. For
+            "deep": hidden_dim, n_layers, learning_rate, max_iterations,
+            batch_size, lr_decay, lr_decay_interval, early_stop_patience,
+            verbose.
 
     Returns:
-        BSDEResult with Y (value process), Z (hedge process).
+        BSDEResult with Y (value process), Z (hedge process). For "deep",
+        ``result.deep`` holds the trained network, y0 parameter, and losses.
 
     Example:
         >>> import torch
         >>> from bsdesolve import solve, LinearGenerator, FunctionTerminal, GBM
-        >>> # Risk-free rate BSDE: dY = -r Y dt + Z dW, Y_T = max(S_T - K, 0)
-        >>> r = 0.05
-        >>> K = 100.0
-        >>> sde = GBM(drift=r, diffusion=0.2, x0=100.0)
-        >>> gen = LinearGenerator(a=r)  # f(t,y,z) = r*y
-        >>> term = FunctionTerminal(func=lambda x: torch.clamp(x - K, min=0.0))
-        >>> result = solve(gen, term, sde=sde, num_paths=100_000, seed=42)
+        >>> sde = GBM(drift=0.05, diffusion=0.2, x0=100.0)
+        >>> gen = LinearGenerator(a=0.05)
+        >>> term = FunctionTerminal(func=lambda x: torch.clamp(x - 100.0, min=0.0))
+        >>> result = solve(gen, term, sde=sde, method="deep",
+        ...                num_time_steps=20, max_iterations=2000, seed=42)
         >>> print(f"Option price: {result.Y0_mean:.4f}")
     """
     if method not in _SCHEMES:
         raise ValueError(f"Unknown method '{method}'. Available: {list(_SCHEMES.keys())}")
+
+    if method == "deep" and sde is None:
+        raise ValueError("method='deep' requires a forward SDE (sde must not be None).")
 
     problem = BSDEProblem(
         generator=generator,
@@ -74,6 +84,7 @@ def solve(
         device=device,
         seed=seed,
         return_diagnostics=return_diagnostics,
+        **scheme_kwargs,
     )
 
 
@@ -90,6 +101,7 @@ def solve_fbsde(
     device: str = "cpu",
     seed: int | None = None,
     return_diagnostics: bool = False,
+    **scheme_kwargs: Any,
 ) -> BSDEResult:
     """Solve a Forward-Backward SDE (FBSDE).
 
@@ -109,6 +121,7 @@ def solve_fbsde(
         device: "cpu" or "cuda".
         seed: Random seed.
         return_diagnostics: Whether to compute convergence diagnostics.
+        **scheme_kwargs: Extra parameters forwarded to the scheme (see solve()).
 
     Returns:
         BSDEResult with Y, Z, and X (forward paths).
@@ -134,10 +147,12 @@ def solve_fbsde(
         device=device,
         seed=seed,
         return_diagnostics=return_diagnostics,
+        **scheme_kwargs,
     )
 
 
 # Registry of available schemes
 _SCHEMES: dict[str, type[Scheme]] = {
     "euler": EulerScheme,
+    "deep": DeepScheme,
 }

@@ -20,6 +20,8 @@ Convergence rate: O(dt) in time, O(1/√N) in number of paths.
 
 from __future__ import annotations
 
+from typing import Any
+
 import torch
 
 from bsdesolve.core.problem import BSDEProblem
@@ -38,6 +40,7 @@ class EulerScheme(Scheme):
         device: str = "cpu",
         seed: int | None = None,
         return_diagnostics: bool = False,
+        **scheme_kwargs: Any,
     ) -> BSDEResult:
         t0, T = problem.t_span
         T_steps = num_time_steps

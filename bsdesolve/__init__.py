@@ -17,6 +17,8 @@ from bsdesolve.core.sde import CIR, GBM, OU, ForwardSDE
 from bsdesolve.core.solver import solve, solve_fbsde
 from bsdesolve.core.terminal import ConstantTerminal, FunctionTerminal, TerminalCondition
 from bsdesolve.diagnostics.convergence import ConvergenceReport
+from bsdesolve.schemes.deep import DeepScheme, ZNetwork
+from bsdesolve.schemes.euler import EulerScheme
 
 __all__ = [
     "solve",
@@ -33,6 +35,9 @@ __all__ = [
     "GBM",
     "OU",
     "CIR",
+    "EulerScheme",
+    "DeepScheme",
+    "ZNetwork",
     "ConvergenceReport",
     "__version__",
 ]
